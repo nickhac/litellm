@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, Form, Button, Tooltip, Typography, Select as AntdSelect, Modal } from "antd";
 import { TextInput } from "@tremor/react";
 import { modelAvailableCall } from "../networking";
@@ -105,19 +105,6 @@ const AddAutoRouterTab: React.FC<AddAutoRouterTabProps> = ({
     fetchModelAccessGroups();
   }, [accessToken]);
 
-  const resetToCustom = useCallback(() => {
-    setComplexityRouterConfig({
-      tiers: { SIMPLE: [], MEDIUM: [], COMPLEX: [], REASONING: [] },
-      classifier_type: "heuristic",
-    });
-    setCustomTechnicalKeywords([]);
-    setKeywordTierRules([]);
-    setSemanticMatchingEnabled(false);
-    setEmbeddingModel(undefined);
-    setMatchThreshold(DEFAULT_MATCH_THRESHOLD);
-    setEscalationKeywords(DEFAULT_ESCALATION_KEYWORDS);
-  }, []);
-
   useEffect(() => {
     let ignore = false;
 
@@ -125,7 +112,6 @@ const AddAutoRouterTab: React.FC<AddAutoRouterTabProps> = ({
       setModelsLoadState("loading");
       setModelInfo([]);
       setSelectedPreset(undefined);
-      resetToCustom();
       try {
         const uniqueModels = await fetchAvailableModels(accessToken);
         if (ignore) return;
@@ -142,7 +128,7 @@ const AddAutoRouterTab: React.FC<AddAutoRouterTabProps> = ({
     return () => {
       ignore = true;
     };
-  }, [accessToken, resetToCustom]);
+  }, [accessToken]);
 
   const isAdmin = all_admin_roles.includes(userRole);
 
@@ -169,7 +155,16 @@ const AddAutoRouterTab: React.FC<AddAutoRouterTabProps> = ({
   const handlePresetChange = (presetKey: string | undefined) => {
     if (!presetKey || presetKey === "custom") {
       setSelectedPreset(presetKey);
-      resetToCustom();
+      setComplexityRouterConfig({
+        tiers: { SIMPLE: [], MEDIUM: [], COMPLEX: [], REASONING: [] },
+        classifier_type: "heuristic",
+      });
+      setCustomTechnicalKeywords([]);
+      setKeywordTierRules([]);
+      setSemanticMatchingEnabled(false);
+      setEmbeddingModel(undefined);
+      setMatchThreshold(DEFAULT_MATCH_THRESHOLD);
+      setEscalationKeywords(DEFAULT_ESCALATION_KEYWORDS);
       return;
     }
 
