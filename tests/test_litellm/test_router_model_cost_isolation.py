@@ -944,3 +944,109 @@ def test_wildcard_zero_cost_request_does_not_poison_named_deployment_pricing():
         assert named_cost == pytest.approx(10 * builtin_input_cost)
     finally:
         _restore_model_cost_entries(model_keys)
+
+
+def test_price_data_reload_preserves_router_registered_model_info(monkeypatch):
+    """
+    A price-data reload replaces litellm.model_cost wholesale. Deployment
+    model_info registered by the Router is not in the fetched catalog, so
+    without a replay of runtime registrations the reload silently strips
+    max_input_tokens / max_output_tokens from every custom model group and
+    /model_group/info starts reporting nulls.
+    """
+    from litellm import utils as litellm_utils
+    from litellm.utils import refresh_model_cost_map
+
+    monkeypatch.setattr(
+        litellm_utils,
+        "_runtime_registered_model_cost",
+        dict(litellm_utils._runtime_registered_model_cost),
+    )
+
+    router = Router(
+        model_list=[
+            {
+                "model_name": "custom-alias",
+                "litellm_params": {"model": "hosted_vllm/not-in-the-catalog"},
+                "model_info": {
+                    "id": "custom-alias-id",
+                    "max_input_tokens": 128000,
+                    "max_output_tokens": 16384,
+                },
+            }
+        ],
+    )
+
+    before = router.get_model_group_info(model_group="custom-alias")
+    assert before is not None
+    assert before.max_input_tokens == 128000
+    assert before.max_output_tokens == 16384
+
+    saved_model_cost = litellm.model_cost
+    try:
+        with patch(
+            "litellm.litellm_core_utils.get_model_cost_map.get_model_cost_map",
+            return_value={"gpt-4o": {"litellm_provider": "openai", "mode": "chat"}},
+        ):
+            refresh_model_cost_map(url="https://example.invalid/model_prices.json")
+
+        after = router.get_model_group_info(model_group="custom-alias")
+        assert after is not None
+        assert after.max_input_tokens == 128000
+        assert after.max_output_tokens == 16384
+    finally:
+        litellm.model_cost = saved_model_cost
+        _invalidate_model_cost_lowercase_map()
+
+
+def test_price_data_reload_preserves_custom_override_of_a_catalog_model(monkeypatch):
+    """
+    A deployment whose backend model IS in the catalog is the quieter half of
+    the same bug: the reload does not blank the metadata, it reverts the
+    operator's model_info override to the upstream catalog values.
+    """
+    from litellm import utils as litellm_utils
+    from litellm.utils import refresh_model_cost_map
+
+    monkeypatch.setattr(
+        litellm_utils,
+        "_runtime_registered_model_cost",
+        dict(litellm_utils._runtime_registered_model_cost),
+    )
+
+    router = Router(
+        model_list=[
+            {
+                "model_name": "capped-gpt-4o",
+                "litellm_params": {"model": "openai/gpt-4o"},
+                "model_info": {
+                    "id": "capped-gpt-4o-id",
+                    "max_input_tokens": 12345,
+                    "max_output_tokens": 678,
+                },
+            }
+        ],
+    )
+
+    saved_model_cost = litellm.model_cost
+    try:
+        with patch(
+            "litellm.litellm_core_utils.get_model_cost_map.get_model_cost_map",
+            return_value={
+                "openai/gpt-4o": {
+                    "litellm_provider": "openai",
+                    "mode": "chat",
+                    "max_input_tokens": 999999,
+                    "max_output_tokens": 888888,
+                }
+            },
+        ):
+            refresh_model_cost_map(url="https://example.invalid/model_prices.json")
+
+        after = router.get_model_group_info(model_group="capped-gpt-4o")
+        assert after is not None
+        assert after.max_input_tokens == 12345
+        assert after.max_output_tokens == 678
+    finally:
+        litellm.model_cost = saved_model_cost
+        _invalidate_model_cost_lowercase_map()

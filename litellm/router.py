@@ -10266,8 +10266,8 @@ class Router:
                 base_model = _model_info.get("base_model", None)
                 if base_model is None:
                     base_model = _litellm_params.get("base_model", None)
-                model_info = self.get_router_model_info(deployment=deployment, received_model_name=model)
                 _deployment_model = base_model or _litellm_params.get("model", None)
+                model_info = self.get_router_model_info(deployment=deployment, received_model_name=model)
 
                 max_input_tokens = model_info.get("max_input_tokens") if isinstance(model_info, dict) else None
                 if isinstance(max_input_tokens, int) and has_countable_input:
@@ -10328,16 +10328,24 @@ class Router:
             ## INVALID PARAMS ## -> catch 'gpt-3.5-turbo-16k' not supporting 'response_format' param
             if request_kwargs is not None and litellm.drop_params is False:
                 # get supported params — use per-deployment model to avoid overwriting the outer model group name
-                _dep_model_for_params = _deployment_model or model
-                (
-                    _dep_model_for_params,
-                    custom_llm_provider,
-                    _,
-                    _,
-                ) = litellm.get_llm_provider(
-                    model=_dep_model_for_params,
-                    litellm_params=LiteLLM_Params(**_litellm_params),
-                )
+                _dep_model_for_params: str = _deployment_model or model
+                try:
+                    (
+                        _dep_model_for_params,
+                        custom_llm_provider,
+                        _,
+                        _,
+                    ) = litellm.get_llm_provider(
+                        model=_dep_model_for_params,
+                        litellm_params=LiteLLM_Params(**_litellm_params),
+                    )
+                except Exception as e:  # noqa: BLE001  # best-effort filter: an unresolvable provider must not fail the request
+                    verbose_router_logger.debug(
+                        "litellm.router.py::_pre_call_checks: skipping supported-params check for model={}. Got - {}".format(
+                            _dep_model_for_params, str(e)
+                        )
+                    )
+                    continue
 
                 supported_openai_params = litellm.get_supported_openai_params(
                     model=_dep_model_for_params,
