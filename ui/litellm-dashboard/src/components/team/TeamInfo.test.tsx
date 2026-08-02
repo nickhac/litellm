@@ -32,6 +32,7 @@ vi.mock("@/app/(dashboard)/hooks/models/useModels", () => ({
 
 vi.mock("@/app/(dashboard)/hooks/teams/useTeams", () => ({
   useTeam: vi.fn(),
+  useTeams: vi.fn().mockReturnValue({ data: [] }),
 }));
 
 vi.mock("@/app/(dashboard)/hooks/organizations/useOrganizations", () => ({
