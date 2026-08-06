@@ -25902,6 +25902,16 @@
         "supports_tool_choice": true,
         "supports_web_search": true
     },
+    "groq/compound-beta": {
+        "litellm_provider": "groq",
+        "max_input_tokens": 131072,
+        "max_output_tokens": 8192,
+        "max_tokens": 131072,
+        "mode": "chat",
+        "supports_function_calling": true,
+        "supports_tool_choice": true,
+        "supports_web_search": true
+    },
     "groq/playai-tts": {
         "input_cost_per_character": 5e-05,
         "litellm_provider": "groq",
