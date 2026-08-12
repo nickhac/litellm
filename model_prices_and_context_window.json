@@ -14925,6 +14925,11 @@
         "supports_tool_choice": true,
         "supports_function_calling": true
     },
+    "deepinfra/Qwen/Qwen3-ASR-0.6B": {
+        "input_cost_per_second": 3.33e-06,
+        "litellm_provider": "deepinfra",
+        "mode": "audio_transcription"
+    },
     "deepinfra/Sao10K/L3-8B-Lunaris-v1-Turbo": {
         "max_tokens": 8192,
         "max_input_tokens": 8192,
