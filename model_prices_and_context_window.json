@@ -15474,6 +15474,11 @@
         "supports_tool_choice": true,
         "supports_function_calling": true
     },
+    "deepinfra/inworld-ai/realtime-tts-1.5-max": {
+        "input_cost_per_character": 5e-05,
+        "litellm_provider": "deepinfra",
+        "mode": "audio_speech"
+    },
     "deepseek/deepseek-chat": {
         "cache_creation_input_token_cost": 0.0,
         "cache_read_input_token_cost": 2.8e-08,
