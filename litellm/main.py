@@ -327,6 +327,41 @@ MOCK_RESPONSE_TYPE = str | Exception | dict | ModelResponse | ModelResponseStrea
 
 
 class LiteLLM:
+    """Client wrapper that mirrors the OpenAI Python SDK surface for LiteLLM.
+
+    Instantiate once with shared configuration (API key, base URL, timeouts,
+    etc.) and then call ``client.chat.completions.create(...)`` for every
+    request, just like you would with the official OpenAI client.
+
+    Parameters:
+        api_key (str, optional): Provider API key.  Falls back to the
+            ``OPENAI_API_KEY`` environment variable when not supplied.
+        organization (str, optional): OpenAI organization ID to include in
+            request headers.
+        base_url (str, optional): Override the provider base URL
+            (e.g. ``"https://my-proxy.example.com/v1"``).
+        timeout (float, optional): Default request timeout in seconds
+            (default: 600).
+        max_retries (int, optional): Maximum number of automatic retries on
+            transient errors (default: ``litellm.num_retries``).
+        default_headers (Mapping[str, str], optional): Extra HTTP headers sent
+            with every request.
+
+    Returns:
+        LiteLLM: A configured client whose ``chat.completions`` attribute
+        exposes a ``create`` method with the same signature as
+        ``litellm.completion``.
+
+    Example:
+        >>> from litellm import LiteLLM
+        >>> client = LiteLLM(api_key="sk-...", timeout=30)
+        >>> response = client.chat.completions.create(
+        ...     model="gpt-4o",
+        ...     messages=[{"role": "user", "content": "Hello!"}],
+        ... )
+        >>> print(response.choices[0].message.content)
+    """
+
     def __init__(
         self,
         *,
